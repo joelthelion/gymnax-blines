@@ -1,0 +1,3 @@
+[submodule "gymnax"]
+	path = submodules/gymnax
+	url = git@github.com:joelthelion/gymnax.git

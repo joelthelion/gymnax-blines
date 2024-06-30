@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 os.environ["TF_CUDNN_DETERMINISTIC"] = "1"
 import jax

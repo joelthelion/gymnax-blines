@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import random
 import numpy as np
 import jax
 import gymnax
@@ -15,9 +16,12 @@ def load_neural_network(config, agent_path):
     return model, params
 
 
-def rollout_episode(env, env_params, model, model_params, max_frames=200):
+def rollout_episode(env, env_params, model, model_params, max_frames=200, random_seed=False):
     state_seq = []
-    rng = jax.random.PRNGKey(0)
+    if random_seed:
+        rng = jax.random.PRNGKey(random.randint(0, 2**32 - 1))
+    else:
+        rng = jax.random.PRNGKey(0)
 
     rng, rng_reset = jax.random.split(rng)
     obs, env_state = env.reset(rng_reset, env_params)
@@ -83,6 +87,17 @@ if __name__ == "__main__":
         default="CartPole-v1",
         help="Environment name.",
     )
+    parser.add_argument(
+        "--random_seed",
+        action="store_true",
+        default=False,
+        help="Use a random seed")
+    parser.add_argument(
+        "--rollouts",
+        type=int,
+        default=1,
+        help="Number of rollouts to visualize.",
+    )
     args, _ = parser.parse_known_args()
 
     base = f"agents/{args.env_name}/{args.train_type}"
@@ -98,8 +113,14 @@ if __name__ == "__main__":
         **configs.train_config.env_kwargs,
     )
     env_params.replace(**configs.train_config.env_params)
-    state_seq, cum_rewards = rollout_episode(
-        env, env_params, model, model_params
-    )
-    vis = Visualizer(env, env_params, state_seq, cum_rewards)
-    vis.animate(f"docs/{args.env_name}.gif")
+    total_rewards = 0
+    # FIXME: this is too slow. Should fix the rollout_episode function instead
+    for _ in range(args.rollouts):
+        state_seq, cum_rewards = rollout_episode(
+            env, env_params, model, model_params,
+            random_seed=args.random_seed
+        )
+        total_rewards += cum_rewards[-1]
+        vis = Visualizer(env, env_params, state_seq, cum_rewards)
+        vis.animate(f"docs/{args.env_name}.gif")
+    print(f"Average Return: {total_rewards / args.rollouts}")

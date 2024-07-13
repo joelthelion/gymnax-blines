@@ -50,7 +50,7 @@ def rollout_episode(env, env_params, model, model_params, max_frames=200, random
             rng_step, env_state, action, env_params
         )
         reward_seq.append(reward)
-        print(t_counter, reward, action, done)
+        print(t_counter, env_state, reward, action, done)
         print(10 * "=")
         t_counter += 1
         if done or t_counter == max_frames:
@@ -98,6 +98,7 @@ if __name__ == "__main__":
         default=1,
         help="Number of rollouts to visualize.",
     )
+    parser.add_argument("--visualize", action="store_true", help="Visualize the rollout.")
     args, _ = parser.parse_known_args()
 
     base = f"agents/{args.env_name}/{args.train_type}"
@@ -114,13 +115,14 @@ if __name__ == "__main__":
     )
     env_params.replace(**configs.train_config.env_params)
     total_rewards = 0
-    # FIXME: this is too slow. Should fix the rollout_episode function instead
+    # FIXME: this is too slow. We should use the parallel strategy used in training.
     for _ in range(args.rollouts):
         state_seq, cum_rewards = rollout_episode(
             env, env_params, model, model_params,
             random_seed=args.random_seed
         )
         total_rewards += cum_rewards[-1]
-        vis = Visualizer(env, env_params, state_seq, cum_rewards)
-        vis.animate(f"docs/{args.env_name}.gif")
+        if args.visualize:
+            vis = Visualizer(env, env_params, state_seq, cum_rewards)
+            vis.animate(f"docs/{args.env_name}.gif")
     print(f"Average Return: {total_rewards / args.rollouts}")
